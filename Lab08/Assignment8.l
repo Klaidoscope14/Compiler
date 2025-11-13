@@ -1,36 +1,43 @@
 %{
-    /*
-    Name: Shreyas Kumar Jaiswal
-    Roll: 2301CS52
-    Date: 10/10/2025
-    */
-
 #include "y.tab.h"
+#include <string.h>
 #include <stdio.h>
-extern int yylineno;
 
-// Helper to print tokens
-void print_token(const char* text, const char* type) {
-    printf("Token: %-10s Type: %s\n", text, type);
-}
+extern int lineno;
+extern int paren_depth;
+void mark_paren_mismatch();
 %}
 
-%%
-int|float|char              { print_token(yytext, "KEYWORD"); return TYPE; }
-[0-9]+(\.[0-9]+)?           { print_token(yytext, "NUMBER"); yylval.fval = atof(yytext); return NUMBER; }
-[a-zA-Z_][a-zA-Z0-9_]*      { print_token(yytext, "IDENTIFIER"); yylval.sval = strdup(yytext); return ID; }
-"="                         { print_token(yytext, "ASSIGNMENT_OP"); return ASSIGN; }
-"+"                         { print_token(yytext, "PLUS"); return PLUS; }
-"-"                         { print_token(yytext, "MINUS"); return MINUS; }
-"*"                         { print_token(yytext, "MUL"); return MUL; }
-"/"                         { print_token(yytext, "DIV"); return DIV; }
-"("                         { print_token(yytext, "LPAREN"); return LPAREN; }
-")"                         { print_token(yytext, "RPAREN"); return RPAREN; }
-";"                         { print_token(yytext, "SEMICOLON"); return SEMICOLON; }
-\'[^\']\'                   { print_token(yytext, "CHAR_LITERAL"); yylval.sval = strdup(yytext); return CHAR_LITERAL; }
-[ \t]+                      { /* skip whitespace */ }
-\n                          { return NEWLINE; }
-.                           { print_token(yytext, "UNKNOWN"); return yytext[0]; }
+DIGIT   [0-9]
+ID      [a-zA-Z_][a-zA-Z0-9_]*
+WS      [ \t]+
+CHARLIT \'([^\\\']|\\.)\'
+
 %%
 
-int yywrap() { return 1; }
+\n              { lineno++; }
+{WS}            { }
+"int"           { printf("Token: int\tType: KEYWORD\n"); return INT_T; }
+"float"         { printf("Token: float\tType: KEYWORD\n"); return FLOAT_T; }
+"char"          { printf("Token: char\tType: KEYWORD\n"); return CHAR_T; }
+
+"="             { printf("Token: =\tType: ASSIGNMENT_OP\n"); return ASSIGN; }
+";"             { printf("Token: ;\tType: SEMICOLON\n"); return SEMI; }
+"+"             { printf("Token: +\tType: PLUS\n"); return PLUS; }
+"*"             { printf("Token: *\tType: MUL\n"); return MUL; }
+"("             { paren_depth++; printf("Token: (\tType: LPAREN\n"); return LPAREN; }
+")"             { if(paren_depth>0) paren_depth--; printf("Token: )\tType: RPAREN\n"); return RPAREN; }
+
+{CHARLIT}       { printf("Token: %s\tType: CHAR_LITERAL\n", yytext); yylval.str = strdup(yytext); return CHAR_LITERAL; }
+
+{ID}            { printf("Token: %s\tType: IDENTIFIER\n", yytext); yylval.str = strdup(yytext); return IDENTIFIER; }
+
+{DIGIT}+        { printf("Token: %s\tType: NUMBER\n", yytext); yylval.num = atoi(yytext); return NUMBER; }
+
+.               { printf("Token: %s\tType: UNKNOWN\n", yytext); return yytext[0]; }
+
+%%
+
+void mark_paren_mismatch(){
+    if(paren_depth > 0){}
+}

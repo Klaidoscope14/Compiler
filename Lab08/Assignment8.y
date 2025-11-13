@@ -1,199 +1,131 @@
 %{
-    /*
-    Name: Shreyas Kumar Jaiswal
-    Roll: 2301CS52
-    Date: 10/10/2025
-    */
-#include "y.tab.h"
 #include <stdio.h>
 #include <stdlib.h>
-extern int yylineno;
+#include <string.h>
 
-int valid = 0, invalid = 0, lines = 0;
-int statement_valid = 1;
+int lineno = 1;
+int paren_depth = 0;
+
+int total_lines = 0;
+int valid_statements = 0;
+int invalid_statements = 0;
+
+int current_valid;
 
 void yyerror(const char *s);
+int yylex(void);
+extern int paren_depth;
 %}
 
-%union {
-    float fval;
-    char* sval;
-}
+%token INT_T FLOAT_T CHAR_T
+%token IDENTIFIER NUMBER CHAR_LITERAL
+%token ASSIGN
+%token PLUS MUL
+%token LPAREN RPAREN
+%token SEMI
 
-%token <sval> ID
-%token <fval> NUMBER
-%token <sval> CHAR_LITERAL
-%token TYPE ASSIGN PLUS MINUS MUL DIV LPAREN RPAREN SEMICOLON NEWLINE
+%start input
 
-%type <fval> expr term factor
+%left PLUS
+%left MUL
 
 %%
 
 input:
-    program
-  | program error {
-      printf("=> INVALID STATEMENT \n\n");
-      invalid++;
-      lines++;
-      statement_valid = 1;
-      yyerrok;
-    }
-  ;
+      /* empty */
+    | input line
+    ;
 
-program:
-    /* empty */
-  | program statement statement_end {
-      lines++;
-      if (statement_valid) {
-          printf("=> VALID STATEMENT \n\n");
-          valid++;
-      } else {
-          printf("=> INVALID STATEMENT \n\n");
-          invalid++;
-      }
-      statement_valid = 1;
-  }
-  | program statement {
-      // Handle last statement without semicolon or newline
-      lines++;
-      if (statement_valid) {
-          printf("=> VALID STATEMENT \n\n");
-          valid++;
-      } else {
-          printf("=> INVALID STATEMENT \n\n");
-          invalid++;
-      }
-      statement_valid = 1;
-  }
-  ;
+line:
+      statement SEMI    {
+                          total_lines++;
+                          if(paren_depth != 0){
+                              yyerror("missing ')' in expression");
+                          }
+                          if(current_valid){
+                              printf("=> VALID STATEMENT\n\n");
+                              valid_statements++;
+                          } else {
+                              printf("=> INVALID STATEMENT\n\n");
+                              invalid_statements++;
+                          }
+                          current_valid = 1;
+                        }
+    | error SEMI       {
+                          total_lines++;
+                          current_valid = 0;
+                          printf("=> INVALID STATEMENT\n\n");
+                          yyerrok();
+                        }
+    ;
 
 statement:
       declaration
     | assignment
-| error recovery_point {
-    printf("Syntax Error: invalid statement skipped until statement end\n\n");
-    statement_valid = 0;
-    yyerrok;
-}
-
-recovery_point:
-      SEMICOLON
-    | NEWLINE
-    | recovery_point SEMICOLON
-    | recovery_point NEWLINE
-    ;
-
-    ;
-
-statement_end:
-      SEMICOLON
-    | NEWLINE
-    | error {
-        printf("Syntax Error1: missing ';' at end of statement\n\n");
-        statement_valid = 0;
-        yyerrok;
-    }
     ;
 
 declaration:
-      TYPE ID SEMICOLON
-    | TYPE ID ASSIGN expr SEMICOLON
-    | TYPE ID ASSIGN error SEMICOLON {
-          printf("Syntax Error2: missing value in assignment \n\n");
-          statement_valid = 0;
-          yyerrok;
-      }
-    | TYPE ID {
-          printf("Syntax Error3: missing ';' after declaration\n\n");
-          statement_valid = 0;
-          yyerrok;
-      }
-    | TYPE error SEMICOLON {
-          printf("Syntax Error: expected identifier after type\n\n");
-          statement_valid = 0;
-          yyerrok;
-      }
+      type IDENTIFIER opt_assign
+    | type {
+          yyerror("missing identifier after type declaration");
+          current_valid = 0;
+        }
+    ;
+
+opt_assign:
+      /* empty */
+    | ASSIGN expr
     ;
 
 assignment:
-      ID ASSIGN expr SEMICOLON
-    | ID ASSIGN error SEMICOLON {
-          printf("Syntax Error4: missing value in assignment \n\n");
-          statement_valid = 0;
-          yyerrok;
-      }
-    | ID ASSIGN expr {
-          printf("Syntax Error5: missing ';' after assignment\n\n");
-          statement_valid = 0;
-          yyerrok;
-      }
+      IDENTIFIER ASSIGN expr
     ;
 
 expr:
-      expr PLUS term
-    | expr MINUS term
-    | expr PLUS error {
-          printf("Syntax Error: missing operand after '+'\n");
-          statement_valid = 0;
-          yyerrok;
-      }
-    | expr MINUS error {
-          printf("Syntax Error: missing operand after '-'\n");
-          statement_valid = 0;
-          yyerrok;
-      }
-    | term
+      term
+    | expr PLUS term
     ;
 
 term:
-      term MUL factor
-    | term DIV factor
-    | term MUL error {
-          printf("Syntax Error: missing operand after '*'\n");
-          statement_valid = 0;
-          yyerrok;
-      }
-    | term DIV error {
-          printf("Syntax Error: missing operand after '/'\n");
-          statement_valid = 0;
-          yyerrok;
-      }
-    | factor
+      factor
+    | term MUL factor
     ;
 
 factor:
-      NUMBER                { $$ = $1; }
-    | ID                    { $$ = 0; }
-    | CHAR_LITERAL          { $$ = 0; }
-    | LPAREN expr RPAREN    { $$ = $2; }
-    | LPAREN expr error     {
-          printf("Syntax Error: missing ')' in expression\n");
-          statement_valid = 0;
-          yyerrok;
-      }
-    | LPAREN error RPAREN   {
-          printf("Syntax Error: invalid expression inside parentheses\n");
-          statement_valid = 0;
-          yyerrok;
-      }
+      NUMBER
+    | IDENTIFIER
+    | CHAR_LITERAL
+    | LPAREN expr RPAREN
+    | LPAREN error RPAREN { yyerror("syntax error inside parentheses"); current_valid = 0; yyerrok(); }
+    | error { yyerror("missing operand or invalid token in expression"); current_valid = 0; yyerrok(); }
     ;
+
+expr:
+    expr PLUS error { yyerror("missing operand after '+'"); current_valid = 0; yyerrok(); }
+  | expr error { yyerror("missing operator or operand in expression"); current_valid = 0; yyerrok(); }
+  ;
+
+term:
+    term MUL error { yyerror("missing operand after '*'"); current_valid = 0; yyerrok(); }
+  ;
 
 %%
 
-void yyerror(const char *s) {
-    if(statement_valid) {
-        printf("Syntax Error: %s\n", s);
-        statement_valid = 0;
-    }
+void yyerror(const char *s){
+    printf("Syntax Error: %s\n", s);
+    current_valid = 0;
 }
 
-int main() {
+int main(void){
+    current_valid = 1;
+    printf("\n");
     yyparse();
+
     printf("-------------------------------------------------------\n");
     printf("Parsing completed.\n");
-    printf("Total lines processed : %d\n", lines);
-    printf("Valid statements      : %d\n", valid);
-    printf("Invalid statements    : %d\n", invalid);
+    printf("Total lines processed : %d\n", total_lines);
+    printf("Valid statements      : %d\n", valid_statements);
+    printf("Invalid statements    : %d\n", invalid_statements);
     printf("-------------------------------------------------------\n");
     return 0;
 }
