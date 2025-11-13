@@ -1,5 +1,0 @@
-x = 10 + y * 2 // This is a comment
-z = ( a - b ) % 5
-/* Multi - line
-comment here */
-quit

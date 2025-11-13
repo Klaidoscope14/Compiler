@@ -1,6 +1,6 @@
 # Expression Evaluator – Recursive Descent Parser (C++)
 
-This project implements a simple arithmetic expression evaluator using **recursive descent parsing**.
+Implements a simple arithmetic expression evaluator using **recursive descent parsing**.
 It supports:
 
 * Integer numbers

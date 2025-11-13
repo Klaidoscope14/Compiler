@@ -1,1 +1,0 @@
-flex Assignment4.l && gcc -c lex.yy.c && g++ -c SimpleLexer.cpp && g++ lex.yy.o SimpleLexer.o -o lexer && ./lexer < input.txt > output.txt

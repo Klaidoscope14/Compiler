@@ -1,4 +1,4 @@
-# Assignment5 — SQLScriptX Lexer (Flex) + Driver + README
+# SQLScriptX Lexer (Flex) + Driver + README
 
 This canvas contains three files you can copy into your project:
 
@@ -43,10 +43,3 @@ If your system uses `libfl`, link with `-lfl`. On some systems flex already gene
 
 * Dollar-quoted and multi-line comment handling in this flex file uses start conditions but is intentionally concise. For production, you may want to improve buffering for large dollar tags and stronger validation (e.g., verify matching tags exactly in the lexer C code).
 * Hex-string odd-length detection is handled approximately; you may want to validate exact even-byte length inside the lexer action and report precise error messages.
-
----
-
-Fill in your name and roll number at the top of `Assignment5.l` as required by the assignment before submission.
-
-```
-```

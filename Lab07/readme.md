@@ -1,6 +1,6 @@
-# Assignment 7 – Markdown Structural Analyzer
+# Markdown Structural Analyzer
 
-This project implements a Markdown structural analyzer using **Flex (Lex)** and **C++**. The analyzer scans a Markdown file and identifies various structural components such as headings, code blocks, links, emphasis markers, lists, HTML tags, and more. It also outputs a summary report of all elements detected.
+Implements a Markdown structural analyzer using **Flex (Lex)** and **C++**. The analyzer scans a Markdown file and identifies various structural components such as headings, code blocks, links, emphasis markers, lists, HTML tags, and more. It also outputs a summary report of all elements detected.
 
 ---
 
@@ -65,7 +65,7 @@ During scanning, the lexer prints:
 
 ````
 Line 3: ATX_HEADING(# Introduction)
-Line 7: LINK([OpenAI](https://openai.com))
+Line 7: LINK([xyz](https://xyz.com))
 Line 12: FENCED_CODE_OPEN(```)
 ...
 ````

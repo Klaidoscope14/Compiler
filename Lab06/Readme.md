@@ -1,4 +1,4 @@
-# LaTeX Analyzer – Assignment 6
+# LaTeX Analyzer 
 
 ## Overview
 
