@@ -1,0 +1,7 @@
+Shifting: if
+Shifting: (
+Shifting: id (x)
+Shifting: >
+Shifting: id (y)
+Reducing by: C → id RELOP id
+Shifting: {

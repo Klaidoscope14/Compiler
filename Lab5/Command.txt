@@ -1,0 +1,1 @@
+flex Assignment5.l && gcc -c lex.yy.c && g++ -c SQLScriptXDriver.cpp && g++ lex.yy.o SQLScriptXDriver.o -o lexer && ./lexer < input.txt > output.txt

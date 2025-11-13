@@ -1,0 +1,3 @@
+win_flex Assignment3.l && gcc -c lex.yy.c && g++ -c procltx.cpp && g++ lex.yy.o procltx.o -o lexer
+
+./lexer < input.txt

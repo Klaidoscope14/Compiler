@@ -1,0 +1,46 @@
+Reducing by: F -> id
+id
+-----------------------
+Reducing by: T -> F
+id
+-----------------------
+Reducing by: E -> T
+id
+-----------------------
+Reducing by: F -> id
+id
+-----------------------
+Reducing by: T -> F
+id
+-----------------------
+Reducing by: F -> id
+id
+-----------------------
+Reducing by: T -> T * F
+*
+|-- id
+|-- id
+-----------------------
+Reducing by: E -> E + T
++
+|-- id
+|-- *
+|   |-- id
+|   |-- id
+-----------------------
+Reducing by: F -> id
+id
+-----------------------
+Reducing by: T -> F
+id
+-----------------------
+Reducing by: E -> E - T
+-
+|-- +
+|   |-- id
+|   |-- *
+|   |   |-- id
+|   |   |-- id
+|-- id
+-----------------------
+----- Final Parse Tree -----

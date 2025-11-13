@@ -1,0 +1,19 @@
+[Line   2] ESCAPED_PERCENT                \%
+[Line   2] COMMENT                         % comment text
+[Line   4] INLINE_MATH                    $(P + \frac{\alpha}{V^2})(V - \beta) = RT$
+[Line   7] ALPHABETIC_COMMAND             \frac
+[Line   7] ALPHABETIC_COMMAND             \alpha
+[Line   7] ALPHABETIC_COMMAND             \beta
+[Line  11] ALPHABETIC_COMMAND             \frac
+[Line  11] ALPHABETIC_COMMAND             \alpha
+[Line  11] ALPHABETIC_COMMAND             \beta
+[Line  14] BEGIN_ENV                      \begin{flushright}
+[Line  16] END_ENV                        \end{flushright}
+[Line  18] ALPHABETIC_COMMAND             \alpha
+[Line  18] ALPHABETIC_COMMAND             \frac
+[Line  18] ALPHABETIC_COMMAND             \sum
+[Line  20] SINGLE_CHARACTER               \$
+[Line  20] SINGLE_CHARACTER               \_
+[Line  20] SINGLE_CHARACTER               \&
+[Line  20] SINGLE_CHARACTER               \\
+[Line  22] ACTIVE_CHARACTER               ~

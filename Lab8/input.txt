@@ -1,0 +1,5 @@
+int a=;
+char c='b';
+int sum= 3+5*;
+float y= 2+(6*4;
+char int

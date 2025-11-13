@@ -1,0 +1,27 @@
+Shifting: id
+Reducing by: F → id
+Reducing by: T → F
+Shifting: &&
+Shifting: !
+Shifting: (
+Shifting: id
+Reducing by: F → id
+Reducing by: T → F
+Shifting: ||
+Reducing by: E → T
+Shifting: id
+Reducing by: F → id
+Reducing by: T → F
+Shifting: )
+Reducing by: E → E || T
+Reducing by: F → (E)
+Reducing by: F → !F
+Reducing by: T → T && F
+Reducing by: E → T
+----- Final Parse Tree -----
+&&
+|-- id
+`-- !
+    `-- ||
+        |-- id
+        `-- id
