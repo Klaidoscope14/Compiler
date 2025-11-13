@@ -1,57 +1,60 @@
 %{
-    /*
-        Name    : Sreyas Kotha
-        Roll No : 2301CS53
-    */
+#include <stdio.h>
+#include <string.h>
 
-    #include <stdio.h>
-    #include <stdlib.h>
-    #include <string.h>
-    #include <ctype.h>
+extern void add_command(const char *cmd);
+extern void add_environment(const char *env);
+extern void inc_inline_math();
+extern void inc_display_math();
+extern void inc_comment();
 
-    int line_num = 1;
-    int token_count = 0;
-
-    // Print token with type and current line number
-    void print_token(const char* type, const char* text) {
-        printf("[Line %3d] %-30s %s\n", line_num, type, text);
-        token_count++;
-    }
+int display_math_mode = 0;
 %}
 
 %%
 
-[ \t]+                          ; // Ignore spaces and tabs
+"\\begin{"[a-zA-Z*]+ "}" {
+    char env[128];
+    sscanf(yytext, "\\begin{%127[^}]", env);
+    add_environment(env);
+}
 
-\n                              { line_num++; }
+"\\end{"[a-zA-Z*]+ "}"   { /* ignore end */ }
 
-"~"                             { print_token("ACTIVE_CHARACTER", yytext); }
+"\\[" { display_math_mode = 1; inc_display_math(); }
+"\\]" { display_math_mode = 0; }
 
-\\%                             { print_token("ESCAPED_PERCENT", yytext); }
+"\$\$" {
+    if (!display_math_mode) {
+        display_math_mode = 1;
+        inc_display_math();
+    } else {
+        display_math_mode = 0;
+    }
+}
 
-\\[a-zA-Z]+                     { print_token("ALPHABETIC_COMMAND", yytext); }
+"\$" { inc_inline_math(); }
 
-\\[\\&%$#_{}~^\"'`=.cvHut|!,:; ] { print_token("SINGLE_CHARACTER", yytext); }
+"%"[^\n]*   { inc_comment(); }
 
-\\begin\{[a-zA-Z*]+\}           { print_token("BEGIN_ENV", yytext); }
+"\\~"        { add_command("~"); }
+"~"         { add_command("~"); }
 
-\\end\{[a-zA-Z*]+\}             { print_token("END_ENV", yytext); }
+"\\\\"      { add_command("\\"); }
 
-\$([^$\\\n]|\\.)+\$             { print_token("INLINE_MATH", yytext); }
+"\\"[a-zA-Z]+ {
+    add_command(yytext);
+}
 
-\$\$([^$\\\n]|\\.)+\$\$         { print_token("DISPLAY_MATH_DOUBLE_DOLLAR", yytext); }
+"\\". {
+    char cmd[3];
+    cmd[0] = yytext[1];
+    cmd[1] = '\0';
+    add_command(cmd);
+}
 
-\\\[([^\\\n]|\\.)+\\\]          { print_token("DISPLAY_MATH_BRACKETS", yytext); }
-
-[^\\]%[^\n]*                    { print_token("COMMENT", yytext); }
-
-.                               ; // Ignore all other characters
+.|\n ;
 
 %%
 
 int yywrap() { return 1; }
-
-void run_lexer() {
-    yylex();
-    printf("\n==== Lexing Complete ====\nTotal tokens: %d\n", token_count);
-}
