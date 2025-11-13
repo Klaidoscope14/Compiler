@@ -1,92 +1,81 @@
-// Name : Chaitanya Saagar
-// Roll No : 2301CS77
-
 #include <bits/stdc++.h>
 using namespace std;
 
-int eval(string& expr, int& pos); 
+string s;
+int pos, n;
+bool err = false;
 
-bool valid(const string& s) {
-    stack<char> st;
-    for (char ch : s) {
-        if (ch == '(') st.push(ch);
-        else if (ch == ')') {
-            if (st.empty()) return false;
-            st.pop();
-        }
-    }
-    return st.empty();
+void skip() {
+    while (pos < n && isspace(s[pos])) pos++;
 }
 
-int parseNumber(string& expr, int& pos) {
-    int num = 0;
-    while (pos < expr.length() && isdigit(expr[pos])) {
-        num = num * 10 + (expr[pos] - '0');
+long long evalsum();
+long long evalterm();
+
+long long number() {
+    skip();
+    if (pos >= n || !isdigit(s[pos])) {
+        err = true;
+        return 0;
+    }
+    long long v = 0;
+    while (pos < n && isdigit(s[pos])) {
+        v = v * 10 + (s[pos] - '0');
         pos++;
     }
-    return num;
+    return v;
 }
 
-int eval(string& expr, int& pos) {
-    int result = 0;
-    int current = 0;
-    int mult = 1;
-
-    while (pos < expr.length()) {
-        char ch = expr[pos];
-
-        if (isspace(ch)) {
-            pos++;
-            continue;
+long long factor() {
+    skip();
+    if (pos < n && s[pos] == '(') {
+        pos++;
+        long long v = evalsum();
+        skip();
+        if (pos >= n || s[pos] != ')') {
+            err = true;
+            return 0;
         }
-
-        if (isdigit(ch)) {
-            current = parseNumber(expr, pos);
-        }
-        else if (ch == '(') {
-            pos++; 
-            current = eval(expr, pos);
-            if (pos >= expr.length() || expr[pos] != ')') {
-                cout << "Error: missing closing parenthesis\n";
-                exit(1);
-            }
-            pos++;
-        }
-        else if (ch == '+') {
-            result += mult * current;
-            current = 0;
-            mult = 1;
-            pos++;
-        }
-        else if (ch == '*') {
-            mult *= current;
-            current = 0;
-            pos++;
-        }
-        else if (ch == ')') {
-            break;
-        }
-        else {
-            cout << "Error: unexpected character '" << ch << "'\n";
-            exit(1);
-        }
+        pos++;
+        return v;
     }
+    return number();
+}
 
-    result += mult * current;
-    return result;
+long long evalterm() {
+    skip();
+    long long v = factor();
+    while (!err) {
+        skip();
+        if (pos < n && s[pos] == '*') {
+            pos++;
+            long long r = factor();
+            v *= r;
+        } else break;
+    }
+    return v;
+}
+
+long long evalsum() {
+    skip();
+    long long v = evalterm();
+    while (!err) {
+        skip();
+        if (pos < n && s[pos] == '+') {
+            pos++;
+            long long r = evalterm();
+            v += r;
+        } else break;
+    }
+    return v;
 }
 
 int main() {
-    string input;
-    getline(cin, input);
-
-    if (!valid(input)) {
-        cout << "Error: Unbalanced parentheses\n";
-        return 1;
-    }
-
-    int pos = 0;
-    int result = eval(input, pos);
-    cout << "Result: " << result << endl;
-    return 0;
+    getline(cin, s);
+    pos = 0;
+    n = s.size();
+    long long ans = evalsum();
+    skip();
+    if (err || pos != n) cout << "Invalid expression\n";
+    else cout << ans << "\n";
 }
