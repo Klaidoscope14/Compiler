@@ -1,99 +1,94 @@
-%option case-insensitive
-
+%option noyywrap
+%option yylineno
 %{
-    /*
-        Name: Shreyas Kumar Jaiswal
-        Roll No: 2301CS52
-        CS3104 Compiler Lab, Autumn 2025 - Assignment 5
-    */
-#include <stdio.h>
-#include <stdlib.h>
+/* Shared token codes (match with driver) */
+#define KEYWORD 256
+#define IDENTIFIER 257
+#define INTEGER 258
+#define FLOAT 259
+#define STRING 260
+#define DOLLAR_STRING 261
+#define HEX_STRING 262
+#define PARAM 263
+#define OPERATOR 264
+#define DELIM 265
+#define COMMENT_SINGLE 266
+#define COMMENT_MULTI 267
+#define ERROR_TOKEN 268
+
 #include <string.h>
-#include <ctype.h>
+#include <stdio.h>
 
-int line_num = 1;
-int token_count = 0;
-int last_printed_line = 0;
-
-// Token type counters
-int keyword_count = 0;
-int identifier_count = 0;
-int int_count = 0;
-int float_count = 0;
-int string_count = 0;
-int dollar_string_count = 0;
-int hex_string_count = 0;
-int param_count = 0;
-int comment_single_count = 0;
-int comment_multi_count = 0;
-int operator_count = 0;
-int delimiter_count = 0;
-int error_count = 0;
-
-void print_line_number_if_needed() {
-    if (last_printed_line != line_num) {
-        if (line_num != 1) printf("\n");
-        printf("Line %d:", line_num);
-        last_printed_line = line_num;
-    }
-}
+/* helper to normalize keywords to uppercase for driver convenience */
+void uppercase(char *s) { for(char *p=s; *p; ++p) if(*p>='a' && *p<='z') *p = *p - 'a' + 'A'; }
 %}
 
-%%
+DIGIT          [0-9]
+HEX            [0-9A-Fa-f]
+ID_START       [A-Za-z_]
+ID_CONT        [A-Za-z0-9_]
+KW             (SELECT|INSERT|UPDATE|DELETE|CREATE|TABLE|INTO|VALUES|WHERE|AND|OR|NOT|LIKE|IN|BETWEEN|JOIN|ON|AS|GROUP|BY|ORDER|ASC|DESC|LIMIT|OFFSET|NULL|TRUE|FALSE)
 
-[ \t]+                                        ; // Ignore whitespace
-\n                                            { line_num++; last_printed_line = 0; }
-"--".*                                        { print_line_number_if_needed(); printf(" COMMENT_SINGLE(%s)", yytext); comment_single_count++; token_count++; }
-"/*"([^*]|\*+[^*/])*\*+"/"?                   { print_line_number_if_needed(); printf(" COMMENT_BLOCK(%s)", yytext); comment_multi_count++; token_count++; }
-
-"SELECT"|"INSERT"|"UPDATE"|"DELETE"|"CREATE"|"TABLE"|"INTO"|"VALUES"|"WHERE"|"AND"|"OR"|"NOT"|"LIKE"|"IN"|"BETWEEN"|"JOIN"|"ON"|"AS"|"GROUP"|"BY"|"ORDER"|"ASC"|"DESC"|"LIMIT"|"OFFSET"|"NULL"|"TRUE"|"FALSE" { print_line_number_if_needed(); printf(" KEYWORD(%s)", yytext); keyword_count++; token_count++; }
-
-"="|"<>"|"!="|"<"|">"|"<="|">="|"+"|"-"|"*"|"/"|"%"|"&&"|"||"|"!" { print_line_number_if_needed(); printf(" OPERATOR(%s)", yytext); operator_count++; token_count++; }
-
-"("                                            { print_line_number_if_needed(); printf(" DELIMITER(()"); delimiter_count++; token_count++; }
-")"                                            { print_line_number_if_needed(); printf(" DELIMITER())"); delimiter_count++; token_count++; }
-"{"                                            { print_line_number_if_needed(); printf(" DELIMITER({)"); delimiter_count++; token_count++; }
-"}"                                            { print_line_number_if_needed(); printf(" DELIMITER(})"); delimiter_count++; token_count++; }
-";"                                            { print_line_number_if_needed(); printf(" DELIMITER(;)"); delimiter_count++; token_count++; }
-","                                            { print_line_number_if_needed(); printf(" DELIMITER(,)"); delimiter_count++; token_count++; }
-"."                                            { print_line_number_if_needed(); printf(" DELIMITER(.)"); delimiter_count++; token_count++; }
-
-[a-zA-Z_][_a-zA-Z0-9]*                         { print_line_number_if_needed(); printf(" IDENTIFIER(%s)", yytext); identifier_count++; token_count++; }
-\"([^\"\n]|\"\")*\"                            { print_line_number_if_needed(); printf(" QUOTED_IDENTIFIER(%s)", yytext); identifier_count++; token_count++; }
-\[[^]\n]*\]                                    { print_line_number_if_needed(); printf(" BRACKET_IDENTIFIER(%s)", yytext); identifier_count++; token_count++; }
-
-[+-]?[0-9]+\.[0-9]*([eE][+-]?[0-9]+)?          { print_line_number_if_needed(); printf(" FLOAT(%s)", yytext); float_count++; token_count++; }
-[+-]?[0-9]+([eE][+-]?[0-9]+)                   { print_line_number_if_needed(); printf(" FLOAT(%s)", yytext); float_count++; token_count++; }
-[0-9]+                                         { print_line_number_if_needed(); printf(" INTEGER(%s)", yytext); int_count++; token_count++; }
-
-\$\$([^$]|\$)*\$\$                             { print_line_number_if_needed(); printf(" DOLLAR_QUOTED_STRING(%s)", yytext); dollar_string_count++; token_count++; }
-\'([^\'\\\n]|\'\'|\\[nt\'\\])*\'               { print_line_number_if_needed(); printf(" STRING_LITERAL(%s)", yytext); string_count++; token_count++; }
-X'([A-F0-9]{2})+'                              { print_line_number_if_needed(); printf(" HEX_STRING(%s)", yytext); hex_string_count++; token_count++; }
-
-[:@][a-zA-Z_][a-zA-Z0-9_]*                     { print_line_number_if_needed(); printf(" PARAMETER(%s)", yytext); param_count++; token_count++; }
-\?                                             { print_line_number_if_needed(); printf(" PARAMETER(?)"); param_count++; token_count++; }
-
-.                                              { print_line_number_if_needed(); printf(" ERROR: Invalid token '%s'", yytext); error_count++; token_count++; }
+%x DOLLAR QBCOMMENT
 
 %%
 
-int yywrap() { return 1; }
+/* Whitespace */
+[ \t\r]+          { /* ignore */ }
+"\n"              { /* newline handled by yylineno */ }
 
-void run_lexer() {
-    yylex();
-    printf("\n\n--- Lexical Analysis Summary ---\n");
-    printf("Total Tokens: %d\n", token_count);
-    printf("Keywords: %d\n", keyword_count);
-    printf("Identifiers: %d\n", identifier_count);
-    printf("Integer Literals: %d\n", int_count);
-    printf("Float Literals: %d\n", float_count);
-    printf("String Literals: %d\n", string_count);
-    printf("Dollar-Quoted Strings: %d\n", dollar_string_count);
-    printf("Hex Byte Strings: %d\n", hex_string_count);
-    printf("Parameters: %d\n", param_count);
-    printf("Single-line Comments: %d\n", comment_single_count);
-    printf("Block Comments: %d\n", comment_multi_count);
-    printf("Operators: %d\n", operator_count);
-    printf("Delimiters: %d\n", delimiter_count);
-    printf("Errors: %d\n", error_count);
-}
+"--"[^\n]*        { /* single-line comment */ return COMMENT_SINGLE; }
+
+"/*"               { BEGIN(QBCOMMENT); yytext[yyleng]=0; /* start block comment */ }
+<QBCOMMENT>([^*]|\*+[^*/])*"*/"  { BEGIN(INITIAL); return COMMENT_MULTI; }
+<QBCOMMENT>.        { /* consume */ }
+<QBCOMMENT>\n       { /* newline consumed; yylineno increments automatically */ }
+
+/* Dollar-quoted strings: $$...$$ or $tag$...$tag$ */
+\$\$              { BEGIN(DOLLAR); yyless(0); /* enter DOLLAR start condition */ }
+\$[A-Za-z0-9_]+\$  { BEGIN(DOLLAR); yyless(0); }
+
+<DOLLAR>\$\$      { /* closing $$ */ BEGIN(INITIAL); return DOLLAR_STRING; }
+<DOLLAR>\$[A-Za-z0-9_]+\$  { /* closing $tag$ */ BEGIN(INITIAL); return DOLLAR_STRING; }
+<DOLLAR>(.|\n)+?   { /* collect until closer — let closing rule fire */ ; }
+
+/* Quoted identifiers (double quotes) with doubled-quote escaping */
+\"([^"]|\"\")*\"  { return IDENTIFIER; }
+\[[^\]]+\]        { return IDENTIFIER; }
+
+/* Hex byte string X'AB12' */
+[Xx]'([0-9A-Fa-f]{2})+'  { return HEX_STRING; }
+[Xx]'([0-9A-Fa-f])+'     { /* odd-length or non-even pairs */ return ERROR_TOKEN; }
+
+/* Strings: single-quoted, support '' escaping and backslash escapes */
+\'([^\\\']|\\[ntr'\\]|\'\')*\'  { return STRING; }
+
+/* Parameters: :name, @name or ? */
+\:[A-Za-z_][A-Za-z0-9_]*   { return PARAM; }
+\@[A-Za-z_][A-Za-z0-9_]*   { return PARAM; }
+\?                        { return PARAM; }
+
+/* Numbers: integer and floats (simple) */
+{DIGIT}+\.[{DIGIT}]*([eE][+-]?{DIGIT}+)?  { return FLOAT; }
+{DIGIT}+([eE][+-]?{DIGIT}+)?               { return INTEGER; }
+
+/* Operators and delimiters */
+"<>"|"!="|"<="|">="  { return OPERATOR; }
+[=<>+\-*/%]               { return OPERATOR; }
+"||"                     { return OPERATOR; }
+[(),;\.]                  { return DELIM; }
+
+/* Keywords (case-insensitive) */
+(?i){KW}                   { /* make sure driver sees original lexeme in yytext */ return KEYWORD; }
+
+/* Identifiers */
+{ID_START}{ID_CONT}*      { return IDENTIFIER; }
+
+/* Anything else */
+.                          { return ERROR_TOKEN; }
+
+%%
+
+/* No additional C code here — driver will read yytext and yylineno and process tokens */
+
+int yywrap(void) { return 1; }
