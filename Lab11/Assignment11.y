@@ -1,213 +1,115 @@
 %{
-// Name: Shreyas Kumar Jaiswal
-// Roll: 2301CS52
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-/* -------- Parse Tree Structure -------- */
-typedef struct Node {
-    char name[50];
-    struct Node *left;
-    struct Node *right;
-    struct Node *next;   // for multiple statements
-} Node;
+typedef struct node {
+    char val[50];
+    struct node* left;
+    struct node* right;
+} node;
 
-/* Function declarations */
-Node* makeNode(char *name, Node *left, Node *right);
-void printTree(Node *tree, int level);
-void yyerror(const char *msg);
-int yylex(void);
-extern int line_no;
+node* make(char* v, node* l, node* r){
+    node* n = malloc(sizeof(node));
+    strcpy(n->val, v);
+    n->left = l;
+    n->right = r;
+    return n;
+}
 
-Node *root = NULL;
+void printTree(node* n, int d){
+    if(!n) return;
+    for(int i=0;i<d;i++) printf("  ");
+    printf("%s\n", n->val);
+    printTree(n->left, d+1);
+    printTree(n->right, d+1);
+}
+
+void reduce(const char* r){
+    printf("Reducing by: %s\n", r);
+}
+
+node* root;
+int yyerror(const char* s){ printf("Syntax Error: %s\n", s); return 0; }
+
 %}
 
-/* -------- Union for YYSTYPE -------- */
 %union {
-    char *str;
-    struct Node *node;
+    char* str;
+    node* nd;
 }
 
-/* -------- Token Declarations -------- */
-%token IF ELSE WHILE
-%token <str> ID NUM RELOP
-%token LPAREN RPAREN LBRACE RBRACE SEMI ASSIGNOP
-%token PLUS MINUS MUL DIV
-
-/* -------- Type Associations -------- */
-%type <node> S ST IF_ST WHILE_ST ASSIGN C E T F
-
-%left PLUS MINUS
-%left MUL DIV
-%right ASSIGNOP
+%token IF ELSE WHILE ID NUM RELOP
+%type <nd> S ST IF_ST WHILE_ST ASSIGN C E T F
 
 %%
-/* -------- Grammar Rules -------- */
 
-S
-    : S ST                     { 
-                                  printf("Reducing by: S → S ST\n");
-                                  Node *temp = $1;
-                                  while (temp->next) temp = temp->next;
-                                  temp->next = $2;
-                                  $$ = $1;
-                                  root = $$;
-                                }
-    | ST                       { 
-                                  printf("Reducing by: S → ST\n");
-                                  $$ = $1; 
-                                  root = $$;
-                                }
-    ;
+S : S ST    { reduce("S → S ST"); $$ = make("S", $1, $2); root = $$; printTree($$,0); }
+  | ST      { reduce("S → ST"); $$ = make("S", $1, NULL); root = $$; printTree($$,0); }
+  ;
 
-ST
-    : IF_ST                    { printf("Reducing by: ST → IF_ST\n"); $$ = $1; }
-    | WHILE_ST                 { printf("Reducing by: ST → WHILE_ST\n"); $$ = $1; }
-    | ASSIGN SEMI              { printf("Reducing by: ST → ASSIGN ;\n"); $$ = $1; }
-    ;
+ST : IF_ST          { reduce("ST → IF_ST"); $$ = $1; }
+   | WHILE_ST       { reduce("ST → WHILE_ST"); $$ = $1; }
+   | ASSIGN ';'     { reduce("ST → ASSIGN ;"); $$ = $1; }
+   ;
 
-IF_ST
-    : IF LPAREN C RPAREN LBRACE S RBRACE
-                                { 
-                                  printf("Reducing by: IF_ST → if ( C ) { S }\n");
-                                  $$ = makeNode("IF_ST", $3, $6);
-                                }
-    | IF LPAREN C RPAREN LBRACE S RBRACE ELSE LBRACE S RBRACE
-                                { 
-                                  printf("Reducing by: IF_ST → if ( C ) { S } else { S }\n");
-                                  Node *ifnode = makeNode("IF_ST", $3, $6);
-                                  ifnode->right = $10;
-                                  $$ = ifnode;
-                                }
-    ;
-
-WHILE_ST
-    : WHILE LPAREN C RPAREN LBRACE S RBRACE
-                                { 
-                                  printf("Reducing by: WHILE_ST → while ( C ) { S }\n");
-                                  $$ = makeNode("WHILE_ST", $3, $6);
-                                }
-    ;
-
-ASSIGN
-    : ID ASSIGNOP E             { 
-                                  printf("Reducing by: ASSIGN → id = E\n");
-                                  char buf[100];
-                                  sprintf(buf, "ASSIGN(%s)", $1);
-                                  $$ = makeNode(buf, $3, NULL);
-                                }
-    ;
-
-C
-    : ID RELOP ID
-        {
-            printf("Reducing by: C → id RELOP id\n");
-            char buf[80];
-            snprintf(buf, sizeof(buf), "COND(%s %s %s)", $1, $2, $3);
-            $$ = makeNode(buf, NULL, NULL);
+IF_ST : IF '(' C ')' '{' S '}' {
+            reduce("IF_ST → if ( C ) { S }");
+            $$ = make("IF", $3, $6);
+            printTree($$,0);
         }
-    | ID RELOP NUM
-        {
-            printf("Reducing by: C → id RELOP num\n");
-            char buf[80];
-            snprintf(buf, sizeof(buf), "COND(%s %s %s)", $1, $2, $3);
-            $$ = makeNode(buf, NULL, NULL);
+      | IF '(' C ')' '{' S '}' ELSE '{' S '}' {
+            reduce("IF_ST → if ( C ) { S } else { S }");
+            node* elseNode = make("ELSE", NULL, $10);
+            $$ = make("IF-ELSE", make("COND",$3,NULL), make("BLOCKS",$6,elseNode));
+            printTree($$,0);
         }
-    | NUM RELOP ID
-        {
-            printf("Reducing by: C → num RELOP id\n");
-            char buf[80];
-            snprintf(buf, sizeof(buf), "COND(%s %s %s)", $1, $2, $3);
-            $$ = makeNode(buf, NULL, NULL);
+      ;
+
+WHILE_ST : WHILE '(' C ')' '{' S '}' {
+               reduce("WHILE_ST → while ( C ) { S }");
+               $$ = make("WHILE", $3, $6);
+               printTree($$,0);
+           }
+         ;
+
+ASSIGN : ID '=' E {
+            reduce("ASSIGN → id = E");
+            $$ = make("ASSIGN", make($1,NULL,NULL), $3);
         }
-    | NUM RELOP NUM
-        {
-            printf("Reducing by: C → num RELOP num\n");
-            char buf[80];
-            snprintf(buf, sizeof(buf), "COND(%s %s %s)", $1, $2, $3);
-            $$ = makeNode(buf, NULL, NULL);
-        }
-    | ID
-        {
-            printf("Reducing by: C → id\n");
-            char buf[40];
-            snprintf(buf, sizeof(buf), "COND(%s)", $1);
-            $$ = makeNode(buf, NULL, NULL);
-        }
-    ;
+        ;
 
-E
-    : E PLUS T                  { 
-                                  printf("Reducing by: E → E + T\n");
-                                  $$ = makeNode("+", $1, $3);
-                                }
-    | E MINUS T                 { 
-                                  printf("Reducing by: E → E - T\n");
-                                  $$ = makeNode("-", $1, $3);
-                                }
-    | T                         { 
-                                  printf("Reducing by: E → T\n");
-                                  $$ = $1;
-                                }
-    ;
-
-T
-    : T MUL F                   { 
-                                  printf("Reducing by: T → T * F\n");
-                                  $$ = makeNode("*", $1, $3);
-                                }
-    | T DIV F                   { 
-                                  printf("Reducing by: T → T / F\n");
-                                  $$ = makeNode("/", $1, $3);
-                                }
-    | F                         { 
-                                  printf("Reducing by: T → F\n");
-                                  $$ = $1;
-                                }
-    ;
-
-F
-    : ID                        { 
-                                  printf("Reducing by: F → id\n");
-                                  $$ = makeNode($1, NULL, NULL);
-                                }
-    | NUM                       { 
-                                  printf("Reducing by: F → num\n");
-                                  $$ = makeNode($1, NULL, NULL);
-                                }
-    ;
-%%
-
-/* -------- Helper Functions -------- */
-
-Node* makeNode(char *name, Node *left, Node *right) {
-    Node *newnode = (Node*)malloc(sizeof(Node));
-    strcpy(newnode->name, name);
-    newnode->left = left;
-    newnode->right = right;
-    newnode->next = NULL;
-    return newnode;
-}
-
-void printTree(Node *tree, int level) {
-    if (!tree) return;
-    for (int i = 0; i < level; i++) printf("    ");
-    printf("|-- %s\n", tree->name);
-
-    if (tree->left)  printTree(tree->left, level + 1);
-    if (tree->right) printTree(tree->right, level + 1);
-    if (tree->next)  printTree(tree->next, level);
-}
-
-void yyerror(const char *msg) {
-    fprintf(stderr, "\nSyntax Error: %s at line %d\n", msg, line_no);
-}
-
-int main() {
-    if (!yyparse()) {
-        printf("\n----- Final Parse Tree -----\n");
-        printTree(root, 0);
+C : ID RELOP ID {
+        reduce("C → id RELOP id");
+        node* r = make($2, make($1,NULL,NULL), make($3,NULL,NULL));
+        $$ = make("COND", r, NULL);
     }
+  | ID {
+        reduce("C → id");
+        $$ = make("COND", make($1,NULL,NULL), NULL);
+    }
+  ;
+
+E : E '+' T { reduce("E → E + T"); $$ = make("+",$1,$3); }
+  | E '-' T { reduce("E → E - T"); $$ = make("-",$1,$3); }
+  | T       { reduce("E → T"); $$ = $1; }
+  ;
+
+T : T '*' F { reduce("T → T * F"); $$ = make("*",$1,$3); }
+  | T '/' F { reduce("T → T / F"); $$ = make("/",$1,$3); }
+  | F       { reduce("T → F"); $$ = $1; }
+  ;
+
+F : ID  { reduce("F → id"); $$ = make($1,NULL,NULL); }
+  | NUM { reduce("F → num"); $$ = make($1,NULL,NULL); }
+  ;
+
+%%
+
+int main(){
+    printf("Enter input:\n");
+    yyparse();
+    printf("\n----- Final Parse Tree -----\n");
+    printTree(root, 0);
     return 0;
 }
