@@ -1,12 +1,10 @@
-#include <iostream>
-using namespace std;
-extern "C" int yywrap();
-extern "C" int yylex();
-extern int token_count;
+#include <cstdio>
 
-int main()
-{
-  yylex();
-  return 0;
+extern "C" int yylex(void);
+extern "C" void print_stats(void);
+
+int main(int argc, char **argv) {
+    yylex();
+    print_stats();
+    return 0;
 }
-
