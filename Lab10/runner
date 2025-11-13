@@ -1,4 +1,0 @@
-yacc -d Assignment10.y && lex Assignment10.l && gcc lex.yy.c y.tab.c -o Assignment10 -ll &&
-for i in {0..5}; do
-    ./Assignment10 < input$i > output$i
-done

@@ -1,7 +1,0 @@
-Shifting: id
-Reducing by: F → id
-Reducing by: T → F
-Shifting: ^^
-Reducing by: E → T
-Shifting: &&
-Parsing failed.
